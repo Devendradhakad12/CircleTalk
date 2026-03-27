@@ -31,6 +31,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           // loginData = { userId, nickname, token }
           
           localStorage.setItem('circle_talk_token', loginData.token);
+          localStorage.setItem('circle_talk_userId', loginData.userId);
+          localStorage.setItem('circle_talk_nickname', loginData.nickname);
+          localStorage.setItem('circle_talk_latitude', lat.toString());
+          localStorage.setItem('circle_talk_longitude', lon.toString());
           onLogin(loginData, lat, lon);
         } catch (err: any) {
           setError(err.response?.data?.message || 'Login failed. Ensure DB is running.');

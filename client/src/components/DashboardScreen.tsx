@@ -16,9 +16,10 @@ interface DashboardProps {
   longitude: number;
   nickname: string;
   onJoinRoom: (roomId: string, roomName: string) => void;
+  logout: () => void;
 }
 
-const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickname, onJoinRoom }) => {
+const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickname, onJoinRoom, logout }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -67,16 +68,24 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
             Active across 5km radius
           </div>
         </div>
-        <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10 shadow-inner">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span className="font-medium text-sm text-emerald-100">{nickname}</span>
+        <div className=' flex gap-2'>
+          <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10 shadow-inner">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span className="font-medium text-sm text-emerald-100">{nickname}</span>
+          </div>
+          {/* logout button */}
+          <button onClick={logout} className="text-sm text-white/50 border-2 border-white/10  px-8 cursor-pointer py-2 rounded-[30px] hover:text-white transition-colors">
+            Logout
+          </button>
         </div>
+
+
       </header>
 
       <main className="max-w-4xl mx-auto p-6 md:p-12 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-semibold tracking-tight">Nearby Circles</h1>
-          <button 
+          <button
             onClick={() => setIsCreating(true)}
             className="bg-white/10 hover:bg-white/20 transition-colors border border-white/10 px-5 py-2.5 rounded-full flex items-center gap-2 text-sm font-medium"
           >
@@ -86,7 +95,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
 
         <AnimatePresence>
           {isCreating && (
-            <motion.form 
+            <motion.form
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -94,31 +103,31 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
               className="glass-panel overflow-hidden p-6 rounded-2xl space-y-4"
             >
               <h3 className="text-xl font-medium">Create a new local room</h3>
-              <input 
-                type="text" 
-                placeholder="Room Name (e.g., Downtown Chills)" 
+              <input
+                type="text"
+                placeholder="Room Name (e.g., Downtown Chills)"
                 className="w-full glass-input px-4 py-3 rounded-xl"
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 autoFocus
               />
-              <input 
-                type="text" 
-                placeholder="What's this about? (Optional)" 
+              <input
+                type="text"
+                placeholder="What's this about? (Optional)"
                 className="w-full glass-input px-4 py-3 rounded-xl"
                 value={newRoomDesc}
                 onChange={(e) => setNewRoomDesc(e.target.value)}
               />
               <div className="flex justify-end gap-3 pt-2">
-                <button 
-                  type="button" 
-                  onClick={() => setIsCreating(false)} 
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(false)}
                   className="px-5 py-2 rounded-xl bg-transparent hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-6 py-2 rounded-xl bg-rose-500 text-white font-medium hover:bg-rose-600 transition-colors"
                 >
                   Create
@@ -142,7 +151,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
             <p className="text-muted-foreground max-w-sm mx-auto mb-6">
               No active rooms found within 5km. Be the first to start a conversation in your area!
             </p>
-            <button 
+            <button
               onClick={() => setIsCreating(true)}
               className="bg-rose-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-rose-600 transition"
             >
@@ -156,7 +165,7 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.05 }}
-                key={room._id} 
+                key={room._id}
                 className="glass-panel group p-6 rounded-2xl flex flex-col justify-between hover:bg-white/5 transition-all duration-300 relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 w-1 h-full bg-rose-500/0 group-hover:bg-rose-500/100 transition-colors" />
@@ -166,8 +175,8 @@ const DashboardScreen: React.FC<DashboardProps> = ({ latitude, longitude, nickna
                     <p className="text-sm text-white/50 mt-1 line-clamp-2">{room.description}</p>
                   )}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={() => onJoinRoom(room._id, room.name)}
                   className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-rose-500 hover:text-white py-3 rounded-xl transition-colors font-medium text-sm border border-white/5 group-hover:border-transparent"
                 >
