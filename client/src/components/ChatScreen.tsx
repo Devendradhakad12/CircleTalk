@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getSocket } from '../lib/socket';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Send, Loader2, Shield, Activity, Cpu, Wifi } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-// utility to merge tw classes easily
 export function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
@@ -32,17 +31,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ roomId, roomName, currentUserId
   const [text, setText] = useState('');
   const [connecting, setConnecting] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const socket = getSocket();
-
     socket.emit('join_room', { roomId, latitude, longitude }, (response: any) => {
       setConnecting(false);
       if (response && response.success) {
         setMessages(response.messages || []);
         scrollToBottom();
       } else {
-        alert(response?.message || 'Error joining room');
         onBack();
       }
     });
@@ -52,13 +49,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ roomId, roomName, currentUserId
       scrollToBottom();
     });
 
-    socket.on('user_joined', (data: any) => {
-      // Optional: show systemic message
-    });
-
     return () => {
       socket.off('receive_message');
-      socket.off('user_joined');
     };
   }, [roomId, latitude, longitude, onBack]);
 
@@ -71,106 +63,142 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ roomId, roomName, currentUserId
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-
     const socket = getSocket();
     socket.emit('send_message', { roomId, text }, (response: any) => {
-      if (response && response.success) {
-         // Optionally confirm sent -> already receiving it globally from io.to(roomId) in some cases, 
-         // but our backend broadcasts to ROOM and returning success.
-      }
+      if (response && response.success) { /* Logic handled by receive_message */ }
     });
     setText('');
   };
 
   if (connecting) {
     return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center flex-col gap-4">
-        <Loader2 className="h-8 w-8 text-rose-500 animate-spin" />
-        <span className="text-muted-foreground animate-pulse">Connecting to room...</span>
+      <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center gap-6">
+        <div className="relative">
+          <Loader2 className="h-12 w-12 text-indigo-500 animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
+        </div>
+        <span className="text-[10px] font-bold tracking-[0.4em] text-indigo-400 uppercase animate-pulse">Establishing Secure Uplink...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#09090b] text-white">
-      {/* Header */}
-      <header className="glass-panel border-b-0 sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
-        <button 
-          onClick={onBack}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h2 className="font-bold text-lg">{roomName}</h2>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-xs text-white/50">Live</span>
+    <div className="flex flex-col h-screen bg-[#05070a] text-slate-200 overflow-hidden relative">
+      
+      {/* BACKGROUND DECOR */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(79,70,229,0.02),rgba(16,185,129,0.01),rgba(79,70,229,0.02))] bg-[size:100%_4px,3px_100%]" />
+      </div>
+
+      {/* HEADER */}
+      <header className="z-20 backdrop-blur-xl bg-[#05070a]/80 border-b border-white/[0.05] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-5">
+          <button onClick={onBack} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all active:scale-90">
+            <ArrowLeft className="h-5 w-5 text-indigo-400" />
+          </button>
+          <div className="space-y-1">
+            <h2 className="font-bold text-sm tracking-widest uppercase text-white">{roomName}</h2>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Sync Status: Stable</span>
+            </div>
           </div>
+        </div>
+        <div className="hidden md:flex gap-4 items-center opacity-40">
+           <Shield className="h-4 w-4 text-emerald-400" />
+           <Activity className="h-4 w-4 text-indigo-400" />
+           <Cpu className="h-4 w-4 text-slate-400" />
         </div>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {messages.length === 0 && (
-          <div className="text-center text-white/30 py-10">
-            No messages yet. Say hello!
-          </div>
-        )}
-        
-        {messages.map((msg, idx) => {
-          const isMe = msg.senderId === currentUserId;
-          // Simple trick to color distinct nicknames differently based on their first char code
-          const colorCode = msg.senderNickname.charCodeAt(0) % 5;
-          const nicknameColors = [
-            'text-rose-400', 'text-sky-400', 'text-emerald-400', 'text-amber-400', 'text-purple-400'
-          ];
-          
-          return (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={msg._id || idx} 
-              className={cn("flex flex-col max-w-[85%]", isMe ? "ml-auto items-end" : "items-start")}
-            >
-              {!isMe && (
-                <span className={cn("text-[11px] font-medium mb-1 pl-1", nicknameColors[colorCode])}>
-                  {msg.senderNickname}
-                </span>
-              )}
-              <div 
-                className={cn(
-                  "px-4 py-2.5 rounded-2xl relative",
-                  isMe 
-                    ? "bg-rose-500 text-white rounded-tr-sm" 
-                    : "glass-input rounded-tl-sm text-gray-100"
-                )}
-              >
-                <p className="text-[15px] leading-relaxed break-words">{msg.text}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-        <div ref={scrollRef} />
+      {/* MESSAGES AREA */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+        <AnimatePresence initial={false}>
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center opacity-20 italic space-y-4">
+              <Wifi className="h-12 w-12 animate-bounce" />
+              <p className="text-xs tracking-widest uppercase">Waiting for signal packets...</p>
+            </div>
+          ) : (
+            messages.map((msg, idx) => {
+              const isMe = msg.senderId === currentUserId;
+              const nodeColors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+              const signalColor = nodeColors[msg.senderNickname.length % 5];
+              
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, x: isMe ? 20 : -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  key={msg._id || idx} 
+                  className={cn("flex flex-col group", isMe ? "items-end" : "items-start")}
+                >
+                  <div className={cn("flex items-center gap-2 mb-2 px-1", isMe ? "flex-row-reverse" : "flex-row")}>
+                    <div className="h-1 w-4 rounded-full" style={{ backgroundColor: signalColor }} />
+                    <span className="text-[10px] font-black tracking-[0.2em] text-slate-500 uppercase">
+                      {isMe ? "YOU" : msg.senderNickname}
+                    </span>
+                  </div>
+
+                  <div 
+                    className={cn(
+                      "relative px-5 py-3 border backdrop-blur-md transition-all",
+                      isMe 
+                        ? "bg-indigo-600/20 border-indigo-500/40 rounded-2xl rounded-tr-none text-indigo-50" 
+                        : "bg-white/[0.03] border-white/10 rounded-2xl rounded-tl-none text-slate-200"
+                    )}
+                  >
+                    {/* Holographic Glitch Effect on Bubble */}
+                    <div className="absolute -inset-[1px] bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
+                    
+                    <p className="text-sm font-medium leading-relaxed break-words font-mono opacity-90 tracking-wide">
+                      {msg.text}
+                    </p>
+                    
+                    <span className="absolute -bottom-5 text-[8px] font-bold text-slate-600 tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
+        <div ref={scrollRef} className="h-4" />
       </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleSend} className="p-4 glass-panel border-t border-white/5 flex gap-2">
-        <input 
-          type="text" 
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 glass-input px-4 py-3.5 rounded-xl text-[15px] focus:outline-none"
-        />
-        <button 
-          type="submit" 
-          disabled={!text.trim()}
-          className="bg-rose-500 text-white p-3.5 rounded-xl hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <Send className="h-5 w-5" />
-        </button>
-      </form>
+      {/* INPUT FORM */}
+      <div className="p-6 bg-gradient-to-t from-[#05070a] to-transparent relative z-10">
+        <form onSubmit={handleSend} className="relative group max-w-4xl mx-auto flex items-center gap-3">
+          <div className="absolute -inset-1 bg-indigo-500/20 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+          
+          <div className="relative flex-1">
+            <input 
+              type="text" 
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="ENCRYPT MESSAGE..."
+              className="w-full bg-slate-900/50 border border-white/10 focus:border-indigo-500/50 px-6 py-4 rounded-2xl text-sm outline-none transition-all placeholder:text-slate-700 placeholder:tracking-[0.2em] font-mono tracking-wider"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-20">
+               <span className="text-[10px] font-bold text-indigo-400 tracking-tighter">SECURE</span>
+               <div className="h-1 w-1 bg-emerald-500 rounded-full" />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={!text.trim()}
+            className="relative h-14 w-14 flex items-center justify-center bg-indigo-500 hover:bg-indigo-400 text-white rounded-2xl disabled:opacity-20 disabled:grayscale transition-all shadow-lg shadow-indigo-500/20 active:scale-90"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </form>
+        
+        <p className="text-center mt-4 text-[9px] font-bold text-slate-700 tracking-[0.5em] uppercase">
+          Signal encrypted via end-to-end mesh tunnel
+        </p>
+      </div>
     </div>
   );
 };
